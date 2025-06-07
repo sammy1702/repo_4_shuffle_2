@@ -13,9 +13,10 @@ RUN PIP_NO_PROGRESS_BAR=off PIP_DISABLE_PIP_VERSION_CHECK=1 PYTHONWARNINGS=ignor
 # Kopieer de rest van de code
 COPY shuffle_2.py .
 COPY credentials.json .
+COPY Send_to_git.py .
 
 # Maak output- en inputmappen aan (in container)
 #RUN mkdir -p /data/repo_3_reduced_votes /data/repo_5_resultaat
 
 # Standaard commando
-CMD ["python", "shuffle_2.py"]
+CMD ["python", "shuffle_2.py" "Send_to_git.py"]
