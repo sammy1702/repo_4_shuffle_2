@@ -12,17 +12,17 @@ FOLDER_ID_REDUCED = '1Nh2_-lsQpUDY3E5vuQqgGsHV7Vgbj8AT'  # euv-data/reduced_vote
 FOLDER_ID_RESULTAAT = '1cDNDyPKhSDelf2YuL-2jtjgvTXoPO0W6'  # euv-data/resultaat
 FOLDER_ID_RANKING = '1Jt3o0S9crNExpYCy3H5O_d1w8AXgMcFf'   # euv-data/ranking_per_land
 
-INPUT_DIR = os.path.expanduser("/tmp/euv_shuffle2_input")
-OUTPUT_DIR = os.path.expanduser("/tmp/euv_shuffle2_output")
-FINAL_RANKING_FILE = os.path.join(OUTPUT_DIR, "final_ranking.json")
-WINNERS_FILE = os.path.join(OUTPUT_DIR, "winners_per_country.json")
+INPUT_DIR = "/app/reduced_votes"
+OUTPUT_RESULTAAT = "/app/resultaat"
+OUTPUT_RANKING = "/app/ranking_per_land"
+FINAL_RANKING_FILE = os.path.join(OUTPUT_RESULTAAT, "final_ranking.json")
+WINNERS_FILE = os.path.join(OUTPUT_RESULTAAT, "winners_per_country.json")
 
 # === SETUP GOOGLE DRIVE API ===
 SCOPES = ['https://www.googleapis.com/auth/drive']
 creds = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 service = build('drive', 'v3', credentials=creds)
-
 
 def upload_to_drive(filepath, drive_filename, folder_id):
     file_metadata = {
@@ -32,7 +32,6 @@ def upload_to_drive(filepath, drive_filename, folder_id):
     media = MediaFileUpload(filepath, resumable=True)
     service.files().create(body=file_metadata, media_body=media, fields='id').execute()
     print(f"☁️ Geüpload naar Google Drive: {drive_filename} → map ID {folder_id}")
-
 
 # === DOWNLOAD STEMBESTANDEN ===
 print("🔽 Downloaden van stemdata uit Google Drive...")
@@ -56,10 +55,10 @@ for file in files:
                 _, done = downloader.next_chunk()
         print(f"✅ Gedownload: {file_name}")
 
-
 # === STEMVERWERKING ===
 print("⚙️ Verwerken van stemmen...")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(OUTPUT_RESULTAAT, exist_ok=True)
+os.makedirs(OUTPUT_RANKING, exist_ok=True)
 
 votes_total = defaultdict(int)
 winners_per_country = {}
@@ -100,7 +99,6 @@ for filename in os.listdir(INPUT_DIR):
 
 print(f"📊 Totaal aantal unieke songs geteld: {len(votes_total)}")
 
-
 # === FINALE RANKING TOTAAL ===
 ranking = sorted(votes_total.items(), key=lambda x: x[1], reverse=True)
 final_ranking = [
@@ -111,7 +109,7 @@ final_ranking = [
 # === PER LAND: JSON RANKING ===
 for country, song_counts in per_country_votes.items():
     country_ranking = sorted(song_counts.items(), key=lambda x: x[1], reverse=True)
-    output_path = os.path.join(OUTPUT_DIR, f"{country}_ranking.json")
+    output_path = os.path.join(OUTPUT_RANKING, f"{country}_ranking.json")
     country_result = [
         {"rank": rank + 1, "song_number": song, "votes": count}
         for rank, (song, count) in enumerate(country_ranking)
@@ -129,7 +127,6 @@ upload_to_drive(FINAL_RANKING_FILE, "final_ranking.json", FOLDER_ID_RESULTAAT)
 with open(WINNERS_FILE, "w") as f:
     json.dump(winners_per_country, f, indent=4)
 upload_to_drive(WINNERS_FILE, "winners_per_country.json", FOLDER_ID_RESULTAAT)
-
 
 # === VALIDATIE ===
 if final_ranking:
